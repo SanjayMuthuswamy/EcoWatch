@@ -1,0 +1,31 @@
+# EcoWatch AI — Python Dependencies
+# Target Python 3.9+
+
+# Core scientific computing
+numpy==1.26.4
+scipy==1.12.0
+
+# Geospatial / raster processing
+rasterio==1.3.9
+Pillow==10.3.0
+
+# Deep Learning
+torch==2.2.2
+torchvision==0.17.2
+
+# Data & Visualization
+matplotlib==3.8.3
+pandas==2.2.1
+
+# Web framework
+Flask==3.0.2
+flask-cors==4.0.0
+
+# HTTP / API
+requests==2.31.0
+
+# Telegram bot
+python-telegram-bot==20.8
+
+# Utilities
+python-dotenv==1.0.1

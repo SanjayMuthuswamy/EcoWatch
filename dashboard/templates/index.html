@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EcoWatch AI — Environmental Threat Detection</title>
+  <meta name="description" content="EcoWatch AI: Real-time wildfire risk, flood predictions, and deforestation monitoring powered by machine learning." />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ── Reset & Tokens ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-deep:    #060918;
+      --bg-panel:   #0d1117;
+      --bg-card:    #111827;
+      --bg-hover:   #1a2235;
+      --border:     #1e293b;
+      --border-glow:#2563eb44;
+      --text:       #e2e8f0;
+      --text-dim:   #64748b;
+      --accent-cyan:  #00e5ff;
+      --accent-green: #00e676;
+      --accent-amber: #ffab40;
+      --accent-red:   #ff5252;
+      --accent-purple:#ce93d8;
+      --fire:  #ff5252;
+      --flood: #00b0ff;
+      --forest:#00e676;
+      --radius: 12px;
+      --shadow: 0 4px 24px rgba(0,0,0,.6);
+    }
+
+    html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg-deep); color: var(--text); overflow: hidden; }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    #app { display: grid; grid-template-rows: 56px 1fr; grid-template-columns: 320px 1fr; height: 100vh; }
+
+    /* ── Top Nav ─────────────────────────────────────────────────────── */
+    #nav {
+      grid-column: 1 / -1;
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 24px;
+      background: linear-gradient(90deg, #060918, #0a0f1e);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 20px rgba(0,229,255,.07);
+    }
+    .logo { font-size: 1.15rem; font-weight: 800; letter-spacing: -.5px; }
+    .logo span { color: var(--accent-cyan); }
+    #nav .badge {
+      font-size: .65rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; border: 1px solid;
+      letter-spacing: .5px; text-transform: uppercase;
+    }
+    .badge-live { background: rgba(0,230,118,.12); border-color: var(--accent-green); color: var(--accent-green); }
+    #nav-stats { margin-left: auto; display: flex; gap: 24px; }
+    .nav-stat { text-align: right; }
+    .nav-stat .val { font-size: 1rem; font-weight: 700; color: var(--accent-cyan); }
+    .nav-stat .lbl { font-size: .65rem; color: var(--text-dim); text-transform: uppercase; }
+    #clock { font-family: 'JetBrains Mono', monospace; font-size: .8rem; color: var(--text-dim); }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────── */
+    #sidebar {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow-y: auto; overflow-x: hidden;
+      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+    }
+    .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+    .sidebar-section h3 {
+      font-size: .65rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-dim); margin-bottom: 12px;
+    }
+
+    /* Module Tabs */
+    .mod-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+    .mod-tab {
+      flex: 1; min-width: 80px; padding: 8px 10px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg-card); cursor: pointer;
+      font-size: .75rem; font-weight: 600;
+      text-align: center; transition: all .2s;
+      color: var(--text-dim);
+    }
+    .mod-tab:hover { background: var(--bg-hover); color: var(--text); }
+    .mod-tab.active { color: var(--accent-cyan); border-color: var(--accent-cyan); background: rgba(0,229,255,.06); }
+    .mod-tab .icon { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+
+    /* Stat cards */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .stat-card:hover { border-color: var(--border-glow); box-shadow: 0 0 12px rgba(37,99,235,.15); }
+    .stat-card .s-val { font-size: 1.3rem; font-weight: 800; }
+    .stat-card .s-lbl { font-size: .65rem; color: var(--text-dim); text-transform: uppercase; margin-top: 2px; }
+    .stat-card .s-sub { font-size: .7rem; margin-top: 4px; opacity: .7; }
+
+    /* Alert levels */
+    .level-badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: .65rem; font-weight: 700; text-transform: uppercase;
+    }
+    .CRITICAL { background: rgba(255,82,82,.15); color: var(--fire); border: 1px solid var(--fire); }
+    .HIGH     { background: rgba(255,171,64,.12); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+    .MEDIUM   { background: rgba(0,176,255,.1);  color: var(--flood); border: 1px solid var(--flood); }
+    .LOW      { background: rgba(0,230,118,.1);  color: var(--forest); border: 1px solid var(--forest); }
+
+    /* Hotspot list */
+    .hotspot-list { display: flex; flex-direction: column; gap: 6px; }
+    .hotspot-item {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 12px;
+      cursor: pointer; transition: all .2s;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .hotspot-item:hover { background: var(--bg-hover); border-color: var(--accent-cyan); transform: translateX(2px); }
+    .hotspot-item .hs-name { font-size: .8rem; font-weight: 600; }
+    .hotspot-item .hs-meta { font-size: .65rem; color: var(--text-dim); margin-top: 2px; }
+    .hs-icons { display: flex; gap: 4px; font-size: .85rem; }
+
+    /* Chart panel */
+    #flood-chart-wrap { 
+      background: var(--bg-card); border-radius: 10px; padding: 12px;
+      border: 1px solid var(--border); 
+    }
+    #flood-chart-wrap canvas { max-height: 130px; }
+
+    /* ── Map container ────────────────────────────────────────────────── */
+    #map-wrap { position: relative; overflow: hidden; }
+    #map { width: 100%; height: 100%; }
+
+    /* Map overlay HUD */
+    #hud {
+      position: absolute; top: 16px; right: 16px; z-index: 1000;
+      display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+    }
+    .hud-card {
+      background: rgba(13,17,23,.88); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 14px; min-width: 160px;
+      pointer-events: all;
+    }
+    .hud-card h4 { font-size: .65rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; letter-spacing: .8px; }
+    .hud-row { display: flex; justify-content: space-between; align-items: center; font-size: .75rem; margin-bottom: 3px; }
+    .hud-row .v { font-weight: 700; }
+
+    /* Progress bar */
+    .progress-bar-wrap { background: #1e293b; border-radius: 4px; height: 5px; margin-top: 4px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 4px; transition: width .8s ease; }
+
+    /* Legend */
+    #legend {
+      position: absolute; bottom: 24px; left: 16px; z-index: 1000;
+      background: rgba(13,17,23,.88); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px;
+    }
+    #legend h4 { font-size: .65rem; text-transform: uppercase; color: var(--text-dim); margin-bottom: 8px; }
+    .legend-row { display: flex; align-items: center; gap: 8px; font-size: .72rem; margin-bottom: 5px; }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+    /* Spinner */
+    .spinner-overlay {
+      position: absolute; inset: 0; z-index: 2000;
+      background: rgba(6,9,24,.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent-cyan);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-msg { font-size: .85rem; color: var(--text-dim); }
+
+    /* Pulse animation for alerts */
+    @keyframes pulse-ring {
+      0%   { transform: scale(1); opacity: .8; }
+      70%  { transform: scale(1.8); opacity: 0; }
+      100% { transform: scale(1.8); opacity: 0; }
+    }
+    .pulse-dot { animation: pulse-ring 2s ease-out infinite; }
+
+    /* Leaflet dark tiles override */
+    .leaflet-tile { filter: brightness(.9) contrast(1.05) saturate(.8) hue-rotate(180deg) invert(1); }
+    .leaflet-container { background: #060918; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; } 
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Tooltip */
+    .leaflet-popup-content-wrapper {
+      background: rgba(13,17,23,.95) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 10px !important; color: var(--text) !important;
+      box-shadow: var(--shadow) !important;
+    }
+    .leaflet-popup-tip { background: rgba(13,17,23,.95) !important; }
+    .leaflet-popup-content { font-family: 'Inter', sans-serif; font-size: .8rem; }
+    .popup-title { font-size: .9rem; font-weight: 700; margin-bottom: 8px; color: var(--accent-cyan); }
+    .popup-row { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 4px; font-size: .75rem; }
+    .popup-row .pk { color: var(--text-dim); }
+    .popup-row .pv { font-weight: 600; }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      #app { grid-template-columns: 260px 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Navigation ───────────────────────────────────────────────────── -->
+  <nav id="nav">
+    <div class="logo">🌿 Eco<span>Watch</span> AI</div>
+    <div class="badge badge-live">● Live</div>
+    <div id="clock">--:--:--</div>
+    <div id="nav-stats">
+      <div class="nav-stat"><div class="val" id="ns-hotspots">8</div><div class="lbl">Hotspots</div></div>
+      <div class="nav-stat"><div class="val" id="ns-fires" style="color:var(--fire)">–</div><div class="lbl">Fire Alerts</div></div>
+      <div class="nav-stat"><div class="val" id="ns-floods" style="color:var(--flood)">–</div><div class="lbl">Flood Risk</div></div>
+      <div class="nav-stat"><div class="val" id="ns-co2" style="color:var(--accent-amber)">–</div><div class="lbl">CO₂e (t)</div></div>
+    </div>
+  </nav>
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside id="sidebar">
+
+    <!-- Module select -->
+    <div class="sidebar-section">
+      <h3>Modules</h3>
+      <div class="mod-tabs">
+        <div class="mod-tab active" id="tab-all" onclick="switchTab('all')">
+          <span class="icon">🌍</span>All
+        </div>
+        <div class="mod-tab" id="tab-wildfire" onclick="switchTab('wildfire')">
+          <span class="icon">🔥</span>WildfireScan
+        </div>
+        <div class="mod-tab" id="tab-flood" onclick="switchTab('flood')">
+          <span class="icon">🌊</span>FloodCast
+        </div>
+        <div class="mod-tab" id="tab-forest" onclick="switchTab('forest')">
+          <span class="icon">🌳</span>ForestGuard
+        </div>
+      </div>
+    </div>
+
+    <!-- Global summary stats -->
+    <div class="sidebar-section">
+      <h3>Global Summary</h3>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="s-val" id="stat-fire-max" style="color:var(--fire)">–%</div>
+          <div class="s-lbl">Max Fire Risk</div>
+          <div class="s-sub" id="stat-fire-region">–</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-val" id="stat-flood-max" style="color:var(--flood)">–%</div>
+          <div class="s-lbl">Max Flood Prob</div>
+          <div class="s-sub" id="stat-flood-region">–</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-val" id="stat-deforest-max" style="color:var(--forest)">–ha</div>
+          <div class="s-lbl">Max Deforest</div>
+          <div class="s-sub" id="stat-deforest-region">–</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-val" id="stat-co2-total" style="color:var(--accent-amber)">–t</div>
+          <div class="s-lbl">Total CO₂e</div>
+          <div class="s-sub">All hotspots</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flood timeseries chart -->
+    <div class="sidebar-section" id="flood-section">
+      <h3>Flood Probability (24 h)</h3>
+      <div id="flood-chart-wrap">
+        <canvas id="floodChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Hotspot list -->
+    <div class="sidebar-section" style="flex:1">
+      <h3>Hotspots</h3>
+      <div class="hotspot-list" id="hotspot-list">
+        <div style="color:var(--text-dim); font-size:.8rem">Loading…</div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Map Area ────────────────────────────────────────────────────── -->
+  <main id="map-wrap">
+    <div class="spinner-overlay" id="spinner">
+      <div class="spinner"></div>
+      <div class="spinner-msg">Loading EcoWatch AI data…</div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- HUD cards -->
+    <div id="hud">
+      <div class="hud-card">
+        <h4>🔥 WildfireScan</h4>
+        <div class="hud-row"><span>Max Risk</span><span class="v" id="hud-fire" style="color:var(--fire)">–</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="fire-bar" style="background:var(--fire);width:0%"></div></div>
+      </div>
+      <div class="hud-card">
+        <h4>🌊 FloodCast</h4>
+        <div class="hud-row"><span>Max Prob</span><span class="v" id="hud-flood" style="color:var(--flood)">–</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar" id="flood-bar" style="background:var(--flood);width:0%"></div></div>
+      </div>
+      <div class="hud-card">
+        <h4>🌳 ForestGuard</h4>
+        <div class="hud-row"><span>CO₂e Released</span><span class="v" id="hud-co2" style="color:var(--accent-amber)">–</span></div>
+        <div class="hud-row"><span>Max Deforest</span><span class="v" id="hud-deforest" style="color:var(--forest)">–</span></div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div id="legend">
+      <h4>Threat Level</h4>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--fire)"></div>Critical / High Fire</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--accent-amber)"></div>Medium Risk</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--flood)"></div>Flood Alert</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--forest)"></div>Deforestation</div>
+      <div class="legend-row"><div class="legend-dot" style="background:var(--text-dim)"></div>Low / Stable</div>
+    </div>
+  </main>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// ── Clock ──────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Map initialisation ─────────────────────────────────────────────────────
+const map = L.map('map', { zoomControl: true, attributionControl: false }).setView([20, 0], 2);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '© OpenStreetMap',
+}).addTo(map);
+
+L.control.attribution({ position: 'bottomright', prefix: '🌿 EcoWatch AI | © OpenStreetMap' }).addTo(map);
+
+// ── State ──────────────────────────────────────────────────────────────────
+let allData = null;
+let floodChart = null;
+let markers = [];
+let currentTab = 'all';
+
+// ── Colour helpers ─────────────────────────────────────────────────────────
+const LEVEL_COLORS = { CRITICAL: '#ff5252', HIGH: '#ffab40', MEDIUM: '#00b0ff', LOW: '#00e676' };
+
+function fireColor(pct) {
+  if (pct > 65) return '#ff5252';
+  if (pct > 35) return '#ffab40';
+  return '#64748b';
+}
+function floodColor(p) {
+  if (p > 0.7) return '#00b0ff';
+  if (p > 0.4) return '#ffab40';
+  return '#64748b';
+}
+function forestColor(pct) {
+  if (pct > 15) return '#ff5252';
+  if (pct > 8)  return '#ffab40';
+  if (pct > 3)  return '#00e676';
+  return '#64748b';
+}
+
+function makeMarker(lat, lon, color, size = 14) {
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:${color};
+      border:2px solid rgba(255,255,255,.25);
+      box-shadow:0 0 ${size}px ${color}88;
+    "></div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+  });
+}
+
+// ── Build popup HTML ───────────────────────────────────────────────────────
+function buildPopup(hs) {
+  const fireLevel = LEVEL_COLORS[hs.wildfire.level] || '#64748b';
+  const floodLevel = LEVEL_COLORS[hs.flood.level] || '#64748b';
+  const forestLevel = LEVEL_COLORS[hs.deforestation.level] || '#64748b';
+
+  return `
+    <div style="min-width:200px">
+      <div class="popup-title">📍 ${hs.region}</div>
+      <div style="margin-bottom:10px;font-size:.65rem;color:#64748b">${hs.lat.toFixed(4)}, ${hs.lon.toFixed(4)}</div>
+
+      <div style="margin-bottom:8px">
+        <div style="font-size:.7rem;font-weight:700;color:#ff5252;margin-bottom:4px">🔥 WildfireScan</div>
+        <div class="popup-row"><span class="pk">Fire Risk</span><span class="pv" style="color:${fireLevel}">${hs.wildfire.fire_risk_pct}%</span></div>
+        <div class="popup-row"><span class="pk">Level</span><span class="pv" style="color:${fireLevel}">${hs.wildfire.level}</span></div>
+      </div>
+
+      <div style="margin-bottom:8px">
+        <div style="font-size:.7rem;font-weight:700;color:#00b0ff;margin-bottom:4px">🌊 FloodCast</div>
+        <div class="popup-row"><span class="pk">Flood Prob</span><span class="pv" style="color:${floodLevel}">${(hs.flood.probability*100).toFixed(1)}%</span></div>
+        <div class="popup-row"><span class="pk">Level</span><span class="pv" style="color:${floodLevel}">${hs.flood.level}</span></div>
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;color:#00e676;margin-bottom:4px">🌳 ForestGuard</div>
+        <div class="popup-row"><span class="pk">Deforestation</span><span class="pv" style="color:${forestLevel}">${hs.deforestation.pct}%</span></div>
+        <div class="popup-row"><span class="pk">CO₂e Released</span><span class="pv" style="color:#ffab40">${hs.deforestation.co2_equivalent_tonnes} t</span></div>
+        <div class="popup-row"><span class="pk">Level</span><span class="pv" style="color:${forestLevel}">${hs.deforestation.level}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+// ── Render markers on map ──────────────────────────────────────────────────
+function renderMarkers(tab) {
+  markers.forEach(m => map.removeLayer(m));
+  markers = [];
+
+  if (!allData) return;
+
+  allData.hotspots.forEach(hs => {
+    let color, size;
+    if (tab === 'wildfire') {
+      color = fireColor(hs.wildfire.fire_risk_pct);
+      size = 10 + hs.wildfire.fire_risk_pct / 10;
+    } else if (tab === 'flood') {
+      color = floodColor(hs.flood.probability);
+      size = 10 + hs.flood.probability * 15;
+    } else if (tab === 'forest') {
+      color = forestColor(hs.deforestation.pct);
+      size = 10 + hs.deforestation.pct / 3;
+    } else {
+      // All — dominant threat
+      const maxThreat = Math.max(
+        hs.wildfire.fire_risk_pct,
+        hs.flood.probability * 100,
+        hs.deforestation.pct * 4,
+      );
+      if (hs.wildfire.fire_risk_pct === maxThreat) color = fireColor(hs.wildfire.fire_risk_pct);
+      else if (hs.flood.probability * 100 === maxThreat) color = floodColor(hs.flood.probability);
+      else color = forestColor(hs.deforestation.pct);
+      size = Math.max(12, Math.min(28, maxThreat / 4));
+    }
+
+    const m = L.marker([hs.lat, hs.lon], { icon: makeMarker(hs.lat, hs.lon, color, size) })
+      .bindPopup(buildPopup(hs), { maxWidth: 260 })
+      .addTo(map);
+    markers.push(m);
+  });
+}
+
+// ── Update sidebar stats ───────────────────────────────────────────────────
+function updateSidebar(data) {
+  const hs = data.hotspots;
+
+  const maxFire = hs.reduce((a, b) => b.wildfire.fire_risk_pct > a.wildfire.fire_risk_pct ? b : a);
+  const maxFlood = hs.reduce((a, b) => b.flood.probability > a.flood.probability ? b : a);
+  const maxForest = hs.reduce((a, b) => b.deforestation.pct > a.deforestation.pct ? b : a);
+  const totalCo2 = hs.reduce((s, b) => s + b.deforestation.co2_equivalent_tonnes, 0);
+
+  document.getElementById('stat-fire-max').textContent = maxFire.wildfire.fire_risk_pct + '%';
+  document.getElementById('stat-fire-region').textContent = maxFire.region;
+  document.getElementById('stat-flood-max').textContent = (maxFlood.flood.probability * 100).toFixed(1) + '%';
+  document.getElementById('stat-flood-region').textContent = maxFlood.region;
+  document.getElementById('stat-deforest-max').textContent = maxForest.deforestation.pct + '%';
+  document.getElementById('stat-deforest-region').textContent = maxForest.region;
+  document.getElementById('stat-co2-total').textContent = totalCo2.toFixed(0) + 't';
+
+  // Nav bar
+  const highFires = hs.filter(h => h.wildfire.level === 'HIGH' || h.wildfire.level === 'CRITICAL').length;
+  const highFloods = hs.filter(h => h.flood.level === 'HIGH').length;
+  document.getElementById('ns-fires').textContent = highFires;
+  document.getElementById('ns-floods').textContent = highFloods;
+  document.getElementById('ns-co2').textContent = totalCo2.toFixed(0) + 't';
+
+  // HUD
+  document.getElementById('hud-fire').textContent = maxFire.wildfire.fire_risk_pct + '%';
+  document.getElementById('fire-bar').style.width = maxFire.wildfire.fire_risk_pct + '%';
+  document.getElementById('hud-flood').textContent = (maxFlood.flood.probability * 100).toFixed(1) + '%';
+  document.getElementById('flood-bar').style.width = (maxFlood.flood.probability * 100) + '%';
+  document.getElementById('hud-co2').textContent = totalCo2.toFixed(0) + ' t';
+  document.getElementById('hud-deforest').textContent = maxForest.deforestation.pct + '%';
+
+  // Hotspot list
+  const list = document.getElementById('hotspot-list');
+  list.innerHTML = '';
+  hs.forEach(h => {
+    const dominant = h.wildfire.fire_risk_pct > 65 ? '🔥' :
+                     h.flood.probability > 0.7     ? '🌊' :
+                     h.deforestation.pct > 10       ? '🌳' : '✅';
+    const levelKey = h.wildfire.level === 'CRITICAL' || h.wildfire.level === 'HIGH' ? 'HIGH' :
+                     h.flood.level === 'HIGH' ? 'MEDIUM' : 'LOW';
+    const div = document.createElement('div');
+    div.className = 'hotspot-item';
+    div.innerHTML = `
+      <div>
+        <div class="hs-name">${h.region}</div>
+        <div class="hs-meta">🔥 ${h.wildfire.fire_risk_pct}% · 🌊 ${(h.flood.probability*100).toFixed(0)}% · 🌳 ${h.deforestation.pct}%</div>
+      </div>
+      <div>${dominant}</div>
+    `;
+    div.onclick = () => {
+      map.flyTo([h.lat, h.lon], 5, { duration: 1 });
+      markers.find(m => {
+        const ll = m.getLatLng();
+        return Math.abs(ll.lat - h.lat) < 0.01 && Math.abs(ll.lng - h.lon) < 0.01;
+      })?.openPopup();
+    };
+    list.appendChild(div);
+  });
+}
+
+// ── Flood chart ────────────────────────────────────────────────────────────
+function buildFloodChart(data) {
+  const ctx = document.getElementById('floodChart').getContext('2d');
+  const probs = data.hotspots.map(h => +(h.flood.probability * 100).toFixed(1));
+  const labels = data.hotspots.map(h => h.region.split(' ')[0]);
+
+  if (floodChart) floodChart.destroy();
+  floodChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Flood Probability (%)',
+        data: probs,
+        borderColor: '#00b0ff',
+        backgroundColor: 'rgba(0,176,255,.1)',
+        pointBackgroundColor: probs.map(v => v > 70 ? '#ff5252' : v > 40 ? '#ffab40' : '#00b0ff'),
+        pointRadius: 4,
+        tension: 0.4,
+        fill: true,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 9 } }, grid: { color: '#1e293b' } },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: '#64748b', font: { size: 9 }, callback: v => v + '%' },
+          grid: { color: '#1e293b' },
+        },
+      },
+    },
+  });
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.mod-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderMarkers(tab);
+}
+
+// ── Fetch and bootstrap ────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const res = await fetch('/api/all_threats');
+    const data = await res.json();
+    allData = data;
+
+    updateSidebar(data);
+    renderMarkers(currentTab);
+    buildFloodChart(data);
+  } catch (err) {
+    console.error('Failed to load threat data:', err);
+    document.getElementById('hotspot-list').innerHTML =
+      '<div style="color:var(--accent-red);font-size:.8rem">⚠ Could not reach API</div>';
+  } finally {
+    document.getElementById('spinner').style.display = 'none';
+  }
+}
+
+// Refresh every 60 s
+loadData();
+setInterval(loadData, 60_000);
+</script>
+</body>
+</html>
