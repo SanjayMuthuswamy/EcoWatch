@@ -264,6 +264,9 @@ def api_all_threats():
         (25.2048, 55.2708, "Dubai / Gulf"),
         (51.5074, -0.1278, "London / Thames"),
         (22.3964, 114.1095, "Hong Kong / Pearl River"),
+        (11.0168, 76.9558, "Coimbatore, Tamil Nadu"),
+        (13.0827, 80.2707, "Chennai, Tamil Nadu"),
+        (28.6139, 77.2090, "Delhi NCR"),
     ]
 
     features = []

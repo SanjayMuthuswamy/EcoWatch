@@ -10,6 +10,7 @@ function App() {
     const { data, loading } = useEcoData();
     const [activeTab, setActiveTab] = useState('all');
     const [currentView, setCurrentView] = useState('map'); // 'map' or 'analytics'
+    const [selectedHotspot, setSelectedHotspot] = useState(null);
 
     return (
         <div className="h-screen w-screen bg-background flex flex-col overflow-hidden font-sans">
@@ -37,6 +38,10 @@ function App() {
                     data={data}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
+                    setSelectedHotspot={(hs) => {
+                        setSelectedHotspot(hs);
+                        setCurrentView('analytics');
+                    }}
                 />
 
                 {/* Content Area */}
@@ -50,7 +55,14 @@ function App() {
                                 exit={{ opacity: 0 }}
                                 className="absolute inset-0 z-0"
                             >
-                                <MapDisplay data={data} activeTab={activeTab} />
+                                <MapDisplay
+                                    data={data}
+                                    activeTab={activeTab}
+                                    onSelectHotspot={(hs) => {
+                                        setSelectedHotspot(hs);
+                                        setCurrentView('analytics');
+                                    }}
+                                />
                             </motion.div>
                         ) : (
                             <motion.div
@@ -60,7 +72,11 @@ function App() {
                                 exit={{ opacity: 0, y: -10 }}
                                 className="flex-1 p-8 overflow-y-auto custom-scrollbar"
                             >
-                                <AnalyticsHub data={data} isFullScreen={true} />
+                                <AnalyticsHub
+                                    data={data}
+                                    selectedHotspot={selectedHotspot}
+                                    isFullScreen={true}
+                                />
                             </motion.div>
                         )}
                     </AnimatePresence>

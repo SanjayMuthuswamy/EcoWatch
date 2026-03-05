@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Filter, ShieldAlert, Waves, TreePine, BarChart2, ChevronRight, X } from 'lucide-react';
 
-const Sidebar = ({ data, activeTab, setActiveTab }) => {
+const Sidebar = ({ data, activeTab, setActiveTab, setSelectedHotspot }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -84,7 +84,7 @@ const Sidebar = ({ data, activeTab, setActiveTab }) => {
 
                         <div className="space-y-3">
                             {filteredHotspots.map(hs => (
-                                <HotspotCard key={hs.region} hs={hs} />
+                                <HotspotCard key={hs.region} hs={hs} onSelect={() => setSelectedHotspot(hs)} />
                             ))}
                         </div>
                     </div>
@@ -119,7 +119,7 @@ const Sidebar = ({ data, activeTab, setActiveTab }) => {
     );
 };
 
-const HotspotCard = ({ hs }) => {
+const HotspotCard = ({ hs, onSelect }) => {
     // Determine primary threat
     const maxVal = Math.max(hs.wildfire.fire_risk_pct, hs.flood.probability * 100, hs.deforestation.pct * 5);
     const primaryColor = hs.wildfire.fire_risk_pct === maxVal ? 'border-l-accent-rose' : (hs.flood.probability * 100 === maxVal ? 'border-l-accent-sky' : 'border-l-accent-emerald');
@@ -128,6 +128,7 @@ const HotspotCard = ({ hs }) => {
         <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
+            onClick={onSelect}
             className={`p-4 bg-white border border-slate-100 border-l-4 ${primaryColor} rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group`}
         >
             <div className="flex justify-between items-start mb-2">
