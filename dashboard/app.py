@@ -23,7 +23,7 @@ for p in [WILDFIRE_PATH, FLOODCAST_PATH, FORESTGUARD_PATH]:
 import json
 import numpy as np
 from datetime import datetime
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, send_from_directory
 
 # ─── Module imports ──────────────────────────────────────────────────────────
 try:
@@ -64,7 +64,12 @@ import torch
 
 # ─────────────────────────── Flask App ───────────────────────────────────────
 
-app = Flask(__name__, template_folder="templates")
+# Update to serve React build
+FRONTEND_DIST = os.path.join(PROJECT_ROOT, "frontend", "dist")
+
+app = Flask(__name__, 
+            static_folder=os.path.join(FRONTEND_DIST, "assets"),
+            template_folder=FRONTEND_DIST)
 app.config["JSON_SORT_KEYS"] = False
 
 # In-memory model cache (avoids retraining on every request)
@@ -107,9 +112,12 @@ def _get_forestguard_model():
 
 # ──────────────────────────── Routes ─────────────────────────────────────────
 
-@app.route("/")
-def index():
-    """Serve the main dashboard page."""
+@app.route("/", defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    """Serve the main dashboard page (React entry)."""
+    if path != "" and os.path.exists(os.path.join(FRONTEND_DIST, path)):
+        return send_from_directory(FRONTEND_DIST, path)
     return render_template("index.html")
 
 

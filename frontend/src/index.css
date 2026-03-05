@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #02040a;
+  --bg-glass: rgba(10, 15, 28, 0.72);
+  --bg-glass-bright: rgba(16, 24, 45, 0.85);
+  --accent-cyan: #00d4ff;
+  --accent-emerald: #00ff9d;
+  --accent-orange: #ff9d00;
+  --accent-error: #ff3e3e;
+  --border: rgba(255, 255, 255, 0.08);
+  --blur: blur(16px);
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-base);
+  color: #f8fafc;
+  overflow: hidden;
+}
+
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.animate-breathe {
+  animation: breathe 2s infinite ease-in-out;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+  background: var(--bg-base) !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-glass-bright) !important;
+  backdrop-filter: var(--blur);
+  border: 1px solid var(--border);
+  border-radius: 16px !important;
+  color: white !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-glass-bright) !important;
+}
