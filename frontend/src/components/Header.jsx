@@ -39,6 +39,12 @@ const Header = ({ currentView, setCurrentView }) => {
                         icon={<BarChart3 size={18} />}
                         label="Analytics"
                     />
+                    <NavLink
+                        active={currentView === 'alerts'}
+                        onClick={() => setCurrentView('alerts')}
+                        icon={<Bell size={18} />}
+                        label="Monitoring"
+                    />
                 </div>
             </div>
 
@@ -80,8 +86,8 @@ const NavLink = ({ active, onClick, icon, label }) => (
     <button
         onClick={onClick}
         className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 ${active
-                ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]'
-                : 'text-slate-500 hover:bg-slate-50 hover:text-primary'
+            ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]'
+            : 'text-slate-500 hover:bg-slate-50 hover:text-primary'
             }`}
     >
         {icon}

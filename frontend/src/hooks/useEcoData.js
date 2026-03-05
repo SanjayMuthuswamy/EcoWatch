@@ -18,11 +18,21 @@ export const useEcoData = () => {
         }
     };
 
+    const sendTelegramTest = async () => {
+        try {
+            const response = await axios.post('/api/telegram/test');
+            return response.data;
+        } catch (err) {
+            console.error('Failed to send Telegram test alert:', err);
+            throw err;
+        }
+    };
+
     useEffect(() => {
         fetchData();
         const interval = setInterval(fetchData, 30000); // Poll every 30s
         return () => clearInterval(interval);
     }, []);
 
-    return { data, loading, error, refresh: fetchData };
+    return { data, loading, error, refresh: fetchData, sendTelegramTest };
 };

@@ -4,12 +4,13 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapDisplay from './components/MapDisplay';
 import AnalyticsHub from './components/AnalyticsHub';
+import MonitoringHub from './components/MonitoringHub';
 import { AnimatePresence, motion } from 'framer-motion';
 
 function App() {
-    const { data, loading } = useEcoData();
+    const { data, loading, sendTelegramTest } = useEcoData();
     const [activeTab, setActiveTab] = useState('all');
-    const [currentView, setCurrentView] = useState('map'); // 'map' or 'analytics'
+    const [currentView, setCurrentView] = useState('map'); // 'map', 'analytics', or 'alerts'
     const [selectedHotspot, setSelectedHotspot] = useState(null);
 
     return (
@@ -64,7 +65,7 @@ function App() {
                                     }}
                                 />
                             </motion.div>
-                        ) : (
+                        ) : currentView === 'analytics' ? (
                             <motion.div
                                 key="analytics-view"
                                 initial={{ opacity: 0, y: 10 }}
@@ -77,6 +78,16 @@ function App() {
                                     selectedHotspot={selectedHotspot}
                                     isFullScreen={true}
                                 />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="monitoring-view"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+                            >
+                                <MonitoringHub data={data} sendTelegramTest={sendTelegramTest} />
                             </motion.div>
                         )}
                     </AnimatePresence>

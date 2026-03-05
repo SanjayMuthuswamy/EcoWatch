@@ -16,7 +16,8 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WILDFIRE_PATH  = os.path.join(PROJECT_ROOT, "modules", "wildfire")
 FLOODCAST_PATH = os.path.join(PROJECT_ROOT, "modules", "floodcast")
 FORESTGUARD_PATH = os.path.join(PROJECT_ROOT, "modules", "forestguard")
-for p in [WILDFIRE_PATH, FLOODCAST_PATH, FORESTGUARD_PATH]:
+ALERTS_PATH = os.path.join(PROJECT_ROOT, "alerts")
+for p in [WILDFIRE_PATH, FLOODCAST_PATH, FORESTGUARD_PATH, ALERTS_PATH]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -59,6 +60,14 @@ try:
 except Exception as e:
     print(f"[WARN] ForestGuard import failed: {e}")
     FORESTGUARD_AVAILABLE = False
+
+try:
+    from telegram_bot import send_test_alert, DEMO_MODE as TELEGRAM_DEMO
+    TELEGRAM_AVAILABLE = True
+except Exception as e:
+    print(f"[WARN] TelegramBot import failed: {e}")
+    TELEGRAM_AVAILABLE = False
+    TELEGRAM_DEMO = True
 
 import torch
 
@@ -131,6 +140,10 @@ def api_status():
             "wildfire_scan": WILDFIRE_AVAILABLE,
             "flood_cast": FLOODCAST_AVAILABLE,
             "forest_guard": FORESTGUARD_AVAILABLE,
+            "telegram_bot": {
+                "available": TELEGRAM_AVAILABLE,
+                "demo_mode": TELEGRAM_DEMO
+            }
         },
     })
 
@@ -252,6 +265,23 @@ def api_forestguard():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/telegram/test", methods=["POST"])
+def api_telegram_test():
+    """Trigger a manual test alert via the Telegram bot."""
+    if not TELEGRAM_AVAILABLE:
+        return jsonify({"error": "Telegram Bot module unavailable"}), 503
+
+    try:
+        success = send_test_alert()
+        return jsonify({
+            "status": "sent" if success else "failed",
+            "mode": "DEMO" if TELEGRAM_DEMO else "LIVE",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/all_threats")
 def api_all_threats():
     """Aggregate summary of all three modules for the dashboard map."""
@@ -306,6 +336,10 @@ def api_all_threats():
         "timestamp": datetime.utcnow().isoformat() + "Z",
         "total_hotspots": len(features),
         "hotspots": features,
+        "telegram_bot": {
+            "available": TELEGRAM_AVAILABLE,
+            "demo_mode": TELEGRAM_DEMO
+        }
     })
 
 

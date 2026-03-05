@@ -144,6 +144,19 @@ def send_wildfire_alert(
     return send_message(msg)
 
 
+def send_test_alert() -> bool:
+    """Send a manual test alert via the dashboard."""
+    msg = (
+        "🧪 *EcoWatch — Manual System Test*\n"
+        "━━━━━━━━━━━━━━━━━━━━\n"
+        "✅ Telegram alert pipeline is active.\n"
+        "📈 All threat modules operational.\n"
+        f"🕐 `{datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}`\n\n"
+        "_This confirms that manual triggers from the dashboard are working._"
+    )
+    return send_message(msg)
+
+
 def send_flood_alert(
     region: str,
     lat: float,
