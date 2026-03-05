@@ -2,56 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --bg-base: #02040a;
-  --bg-glass: rgba(10, 15, 28, 0.72);
-  --bg-glass-bright: rgba(16, 24, 45, 0.85);
-  --accent-cyan: #00d4ff;
-  --accent-emerald: #00ff9d;
-  --accent-orange: #ff9d00;
-  --accent-error: #ff3e3e;
-  --border: rgba(255, 255, 255, 0.08);
-  --blur: blur(16px);
+@layer base {
+  :root {
+    --primary: #0f172a;
+    --background: #fdfdfd;
+    --surface: #ffffff;
+    --accent-indigo: #6366f1;
+    --accent-sky: #0ea5e9;
+    --accent-emerald: #10b981;
+    --accent-rose: #f43f5e;
+    --accent-amber: #f59e0b;
+    --border: #e2e8f0;
+  }
+
+  body {
+    @apply bg-background text-primary antialiased;
+    margin: 0;
+    overflow: hidden;
+  }
 }
 
-body {
-  margin: 0;
-  background-color: var(--bg-base);
-  color: #f8fafc;
-  overflow: hidden;
-}
+@layer components {
+  .card-premium {
+    @apply bg-surface border border-slate-200/60 shadow-premium rounded-2xl transition-all duration-300;
+  }
 
-.glass-panel {
-  background: var(--bg-glass);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--border);
-}
+  .nav-link {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200;
+  }
 
-@keyframes breathe {
-  0%, 100% { opacity: 0.5; transform: scale(0.9); }
-  50% { opacity: 1; transform: scale(1.1); }
-}
-
-.animate-breathe {
-  animation: breathe 2s infinite ease-in-out;
+  .nav-link-active {
+    @apply bg-primary/5 text-accent-indigo;
+  }
 }
 
 /* Leaflet Overrides */
 .leaflet-container {
-  background: var(--bg-base) !important;
+  background: #f1f5f9 !important;
 }
 
 .leaflet-popup-content-wrapper {
-  background: var(--bg-glass-bright) !important;
-  backdrop-filter: var(--blur);
-  border: 1px solid var(--border);
-  border-radius: 16px !important;
-  color: white !important;
+  @apply bg-surface shadow-2xl rounded-2xl border border-slate-100 !important;
+  color: #0f172a !important;
   padding: 0 !important;
   overflow: hidden;
 }
 
 .leaflet-popup-tip {
-  background: var(--bg-glass-bright) !important;
+  @apply bg-surface !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300;
 }

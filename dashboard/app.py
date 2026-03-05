@@ -68,8 +68,8 @@ import torch
 FRONTEND_DIST = os.path.join(PROJECT_ROOT, "frontend", "dist")
 
 app = Flask(__name__, 
-            static_folder=os.path.join(FRONTEND_DIST, "assets"),
-            template_folder=FRONTEND_DIST)
+            static_folder=FRONTEND_DIST,
+            static_url_path="/")
 app.config["JSON_SORT_KEYS"] = False
 
 # In-memory model cache (avoids retraining on every request)
@@ -114,11 +114,11 @@ def _get_forestguard_model():
 
 @app.route("/", defaults={'path': ''})
 @app.route('/<path:path>')
-def index(path):
-    """Serve the main dashboard page (React entry)."""
-    if path != "" and os.path.exists(os.path.join(FRONTEND_DIST, path)):
-        return send_from_directory(FRONTEND_DIST, path)
-    return render_template("index.html")
+def serve(path):
+    """Serve the React application and assets."""
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, 'index.html')
 
 
 @app.route("/api/status")

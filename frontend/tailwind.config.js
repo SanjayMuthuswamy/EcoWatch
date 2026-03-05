@@ -7,23 +7,33 @@ export default {
     theme: {
         extend: {
             colors: {
-                'bg-base': '#02040a',
-                'bg-glass': 'rgba(10, 15, 28, 0.72)',
-                'bg-glass-bright': 'rgba(16, 24, 45, 0.85)',
-                'accent-cyan': '#00d4ff',
-                'accent-emerald': '#00ff9d',
-                'accent-orange': '#ff9d00',
-                'accent-error': '#ff3e3e',
+                primary: {
+                    DEFAULT: '#0f172a',
+                    50: '#f8fafc',
+                    100: '#f1f5f9',
+                    200: '#e2e8f0',
+                    600: '#475569',
+                    700: '#334155',
+                },
+                accent: {
+                    indigo: '#6366f1',
+                    sky: '#0ea5e9',
+                    emerald: '#10b981',
+                    rose: '#f43f5e',
+                    amber: '#f59e0b',
+                },
+                background: '#ffffff',
+                surface: '#f8fafc',
             },
             fontFamily: {
-                ui: ['Inter', 'system-ui', 'sans-serif'],
-                header: ['Orbitron', 'sans-serif'],
+                sans: ['Inter', 'system-ui', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],
             },
-            backdropBlur: {
-                xs: '2px',
+            boxShadow: {
+                'premium': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 10px 15px -3px rgba(0, 0, 0, 0.03)',
             }
         },
     },
     plugins: [],
 }
+

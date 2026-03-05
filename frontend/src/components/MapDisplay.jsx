@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { MapPin, AlertTriangle, Droplets, TreeDeciduous, Info } from 'lucide-react';
 
-// Fix for default marker icons in React
+// Marker icon fix
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({
@@ -25,7 +26,7 @@ const MapDisplay = ({ data, activeTab }) => {
             className="h-full w-full"
         >
             <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
             />
 
@@ -40,63 +41,95 @@ const MapDisplay = ({ data, activeTab }) => {
 
 const MapController = () => {
     const map = useMap();
-    // No-op for now, could be used for programmatic pans
     return null;
 };
 
 const ThreatMarker = ({ hs, activeTab }) => {
-    let color = '#64748b';
-    let val = 0;
+    let color = '#94a3b8'; // slate-400
+    let shadowColor = 'rgba(148, 163, 184, 0.4)';
+
+    const wildfireRisk = hs.wildfire.fire_risk_pct;
+    const floodProb = hs.flood.probability * 100;
+    const defPct = hs.deforestation.pct;
 
     if (activeTab === 'wildfire') {
-        val = hs.wildfire.fire_risk_pct;
-        color = val > 65 ? '#ff3e3e' : (val > 35 ? '#ff9d00' : '#64748b');
+        color = wildfireRisk > 65 ? '#f43f5e' : (wildfireRisk > 35 ? '#f59e0b' : '#94a3b8');
+        shadowColor = wildfireRisk > 65 ? 'rgba(244, 63, 94, 0.5)' : (wildfireRisk > 35 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.4)');
     } else if (activeTab === 'flood') {
-        val = hs.flood.probability * 100;
-        color = val > 70 ? '#00d4ff' : (val > 40 ? '#ff9d00' : '#64748b');
+        color = floodProb > 70 ? '#0ea5e9' : (floodProb > 40 ? '#f59e0b' : '#94a3b8');
+        shadowColor = floodProb > 70 ? 'rgba(14, 165, 233, 0.5)' : (floodProb > 40 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(148, 163, 184, 0.4)');
     } else if (activeTab === 'forest') {
-        val = hs.deforestation.pct;
-        color = val > 15 ? '#ff3e3e' : (val > 8 ? '#ff9d00' : '#00ff9d');
+        color = defPct > 15 ? '#f43f5e' : (defPct > 8 ? '#f59e0b' : '#10b981');
+        shadowColor = defPct > 15 ? 'rgba(244, 63, 94, 0.5)' : (defPct > 8 ? 'rgba(245, 158, 11, 0.5)' : 'rgba(16, 185, 129, 0.5)');
     } else {
-        // Global view color by highest threat
-        const max = Math.max(hs.wildfire.fire_risk_pct, hs.flood.probability * 100);
-        color = max > 70 ? '#ff3e3e' : (max > 40 ? '#00d4ff' : '#00ff9d');
+        const max = Math.max(wildfireRisk, floodProb);
+        color = max > 70 ? '#f43f5e' : (max > 40 ? '#0ea5e9' : '#10b981');
+        shadowColor = max > 70 ? 'rgba(244, 63, 94, 0.5)' : (max > 40 ? 'rgba(14, 165, 233, 0.5)' : 'rgba(16, 185, 129, 0.5)');
     }
 
     const customIcon = L.divIcon({
         className: 'custom-div-icon',
-        html: `<div style="width:20px; height:20px; background:${color}; border:4px solid rgba(255,255,255,0.2); border-radius:50%; box-shadow:0 0 20px ${color}cc;"></div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+        html: `<div style="width:24px; height:24px; background:white; border:4px solid ${color}; border-radius:50%; box-shadow:0 0 15px ${shadowColor}; display:flex; align-items:center; justify-content:center; transform: scale(1); transition: transform 0.2s ease-in-out;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                <div style="width:6px; height:6px; background:${color}; border-radius:50%;"></div>
+              </div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
     });
 
     return (
         <Marker position={[hs.lat, hs.lon]} icon={customIcon}>
             <Popup closeButton={false} className="custom-popup">
-                <div className="overflow-hidden">
-                    <div className="p-4 bg-white/[0.05] border-b border-white/10">
-                        <div className="font-header text-sm text-accent-cyan tracking-wide">📍 {hs.region}</div>
-                    </div>
-                    <div className="p-4 flex flex-col gap-3">
-                        <PopupRow label="Wildfire Risk" value={`${hs.wildfire.fire_risk_pct}%`} color="text-accent-error" />
-                        <PopupRow label="Flood Prob" value={`${(hs.flood.probability * 100).toFixed(1)}%`} color="text-accent-cyan" />
-                        <PopupRow label="Deforestation" value={`${hs.deforestation.pct}%`} color="text-accent-emerald" />
-                        <div className="mt-1 pt-3 border-t border-white/10 flex justify-between items-center text-[0.75rem]">
-                            <span className="text-text-secondary">Carbon Release</span>
-                            <span className="font-mono font-bold text-accent-orange">{hs.deforestation.co2_equivalent_tonnes} t</span>
+                <div className="w-[280px] overflow-hidden">
+                    <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <MapPin size={14} className="text-accent-indigo" />
+                            <div className="font-bold text-sm text-primary tracking-tight">{hs.region}</div>
+                        </div>
+                        <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-white border border-slate-200 text-slate-400">
+                            {hs.lat.toFixed(2)}, {hs.lon.toFixed(2)}
                         </div>
                     </div>
+
+                    <div className="p-4 flex flex-col gap-3.5">
+                        <PopupRow icon={<AlertTriangle size={12} className="text-accent-rose" />} label="Wildfire Risk" value={`${wildfireRisk}%`} color="text-accent-rose" progress={wildfireRisk} />
+                        <PopupRow icon={<Droplets size={12} className="text-accent-sky" />} label="Flood Prob" value={`${floodProb.toFixed(1)}%`} color="text-accent-sky" progress={floodProb} />
+                        <PopupRow icon={<TreeDeciduous size={12} className="text-accent-emerald" />} label="Deforestation" value={`${defPct}%`} color="text-accent-emerald" progress={defPct * 5} />
+
+                        <div className="mt-2 pt-3 border-t border-slate-100">
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Carbon Impact</span>
+                                <span className="text-xs font-bold text-accent-amber">{hs.deforestation.co2_equivalent_tonnes} t CO₂e</span>
+                            </div>
+                            <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-accent-amber rounded-full" style={{ width: '65%' }}></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button className="w-full py-2.5 bg-slate-50 text-[10px] font-bold text-accent-indigo uppercase tracking-widest border-t border-slate-100 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                        <Info size={12} />
+                        View Full Report
+                    </button>
                 </div>
             </Popup>
         </Marker>
     );
 };
 
-const PopupRow = ({ label, value, color }) => (
-    <div className="flex justify-between items-center text-[0.75rem]">
-        <span className="text-text-secondary">{label}</span>
-        <span className={`font-semibold font-mono ${color}`}>{value}</span>
+const PopupRow = ({ icon, label, value, color, progress }) => (
+    <div className="flex flex-col gap-1.5">
+        <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2">
+                {icon}
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">{label}</span>
+            </div>
+            <span className={`text-xs font-bold ${color}`}>{value}</span>
+        </div>
+        <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full opacity-70 rounded-full ${color.replace('text-', 'bg-')}`} style={{ width: `${Math.min(100, progress)}%` }}></div>
+        </div>
     </div>
 );
 
 export default MapDisplay;
+

@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+dist/
+.vite/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+env/
+venv/
+
+# Artifacts & Temporary files
+*.webp
+*.mp4
+/brain/
+.gemini/
+
+# Misc
+.DS_Store
+.vscode/
+.idea/

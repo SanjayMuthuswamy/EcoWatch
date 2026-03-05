@@ -4,48 +4,67 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapDisplay from './components/MapDisplay';
 import AnalyticsHub from './components/AnalyticsHub';
-import MapHUD from './components/MapHUD';
 import { AnimatePresence, motion } from 'framer-motion';
 
 function App() {
     const { data, loading } = useEcoData();
     const [activeTab, setActiveTab] = useState('all');
+    const [currentView, setCurrentView] = useState('map'); // 'map' or 'analytics'
 
     return (
-        <div className="relative h-screen w-screen bg-bg-base text-text-primary font-ui overflow-hidden flex flex-col">
+        <div className="h-screen w-screen bg-background flex flex-col overflow-hidden font-sans">
             <AnimatePresence>
                 {loading && (
                     <motion.div
                         initial={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[9999] bg-bg-base flex flex-col items-center justify-center"
+                        className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center"
                     >
-                        <div className="w-20 h-20 border-4 border-white/10 border-t-accent-cyan rounded-full animate-spin" />
-                        <div className="mt-6 font-header text-sm tracking-widest text-accent-cyan uppercase">
-                            Initializing EcoWatch AI
+                        <div className="w-12 h-12 border-4 border-slate-100 border-t-accent-indigo rounded-full animate-spin" />
+                        <div className="mt-4 font-medium text-slate-400 tracking-wider text-sm">
+                            PREPARING INTELLIGENCE ENGINE...
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="relative h-full w-full flex">
-                {/* Map is at the bottom layer */}
-                <div className="absolute inset-0 z-0">
-                    <MapDisplay data={data} activeTab={activeTab} />
-                </div>
+            {/* Application Header / Navbar */}
+            <Header currentView={currentView} setCurrentView={setCurrentView} />
 
-                {/* UI Overlays */}
-                <Header />
-
+            <div className="flex-1 flex overflow-hidden relative">
+                {/* Collapsible Sidebar */}
                 <Sidebar
                     data={data}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
                 />
 
-                <MapHUD data={data} />
-
-                <AnalyticsHub data={data} />
+                {/* Content Area */}
+                <main className="flex-1 relative bg-slate-50 flex flex-col">
+                    <AnimatePresence mode="wait">
+                        {currentView === 'map' ? (
+                            <motion.div
+                                key="map-view"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 z-0"
+                            >
+                                <MapDisplay data={data} activeTab={activeTab} />
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="analytics-view"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+                            >
+                                <AnalyticsHub data={data} isFullScreen={true} />
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </main>
             </div>
         </div>
     );
