@@ -12,14 +12,17 @@ import {
     CheckCircle2,
     Clock,
     ArrowUpRight,
-    Send
+    Send,
+    Waves
 } from 'lucide-react';
 
-const MonitoringHub = ({ data, sendTelegramTest }) => {
+const MonitoringHub = ({ data, sendTelegramTest, onSelectHotspot }) => {
     if (!data) return null;
 
     const [sending, setSending] = React.useState(false);
     const [testResult, setTestResult] = React.useState(null);
+    const [approving, setApproving] = React.useState(false);
+    const [approved, setApproved] = React.useState(false);
 
     const handleTestAlert = async () => {
         setSending(true);
@@ -31,6 +34,15 @@ const MonitoringHub = ({ data, sendTelegramTest }) => {
             setTestResult({ status: 'failed' });
         }
         setSending(false);
+    };
+
+    const handleApproveProtocol = () => {
+        setApproving(true);
+        setTimeout(() => {
+            setApproving(false);
+            setApproved(true);
+            setTimeout(() => setApproved(false), 5000);
+        }, 2000);
     };
 
     const criticalAlerts = data.hotspots.filter(hs => hs.wildfire.fire_risk_pct > 70 || hs.flood.probability > 0.6);
@@ -71,24 +83,46 @@ const MonitoringHub = ({ data, sendTelegramTest }) => {
                                         region={hs.region}
                                         threat={hs.wildfire.fire_risk_pct > 70 ? 'High Wildfire Risk' : 'Severe Flood Warning'}
                                         severity="Critical"
-                                        time="2m ago"
+                                        reason={hs.wildfire.fire_risk_pct > 70 ? 'Sudden Thermal Variance' : 'Heavy Monsoon Inflow'}
+                                        time="Current"
                                         lat={hs.lat}
                                         lon={hs.lon}
+                                        onClick={() => onSelectHotspot(hs)}
                                     />
                                 ))
-                            ) : (
-                                <div className="py-12 text-center">
-                                    <p className="text-slate-400 font-medium">No critical alerts detected in the current cycle.</p>
-                                </div>
-                            )}
+                            ) : null}
+
+                            <AlertItem
+                                region="Chennai (Flood Watch)"
+                                threat="Severe Flood Warning"
+                                severity="Critical"
+                                reason="Sudden Adyar River Overflow"
+                                time="2m ago"
+                                lat={13.0827}
+                                lon={80.2707}
+                                onClick={() => { }}
+                            />
+
+                            <AlertItem
+                                region="Coimbatore Industrial Zone"
+                                threat="High Wildfire/Industrial Hazard"
+                                severity="Critical"
+                                reason="Chemical Storage Heat Variance"
+                                time="10m ago"
+                                lat={11.0168}
+                                lon={76.9558}
+                                onClick={() => { }}
+                            />
 
                             <AlertItem
                                 region="Boreal Belt"
                                 threat="Atmospheric Variance Detected"
                                 severity="Medium"
+                                reason="Lower Troposphere Shift"
                                 time="15m ago"
                                 lat={55.0}
                                 lon={-106.0}
+                                onClick={() => { }}
                             />
                         </div>
                     </div>
@@ -139,9 +173,17 @@ const MonitoringHub = ({ data, sendTelegramTest }) => {
                         <p className="text-xs font-medium text-slate-600 leading-relaxed mb-6">
                             Neural engine suggests increasing satellite sampling rate over equatorial regions due to unusual thermal variances.
                         </p>
-                        <button className="w-full py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black text-accent-indigo uppercase tracking-[0.2em] hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                            Approve Protocol
-                            <ArrowUpRight size={14} />
+                        <button
+                            onClick={handleApproveProtocol}
+                            disabled={approving || approved}
+                            className={`w-full py-4 border rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${approved ? 'bg-accent-emerald/10 border-accent-emerald text-accent-emerald' :
+                                approving ? 'bg-slate-50 border-slate-200 text-slate-400' :
+                                    'bg-slate-50 border-slate-200 text-accent-indigo hover:bg-slate-100'
+                                }`}
+                        >
+                            {approved ? 'Protocol Approved' : approving ? 'Communicating...' : 'Approve Protocol'}
+                            {!approving && !approved && <ArrowUpRight size={14} />}
+                            {approved && <CheckCircle2 size={14} />}
                         </button>
                     </div>
 
@@ -189,18 +231,27 @@ const MonitoringHub = ({ data, sendTelegramTest }) => {
     );
 };
 
-const AlertItem = ({ region, threat, severity, time, lat, lon }) => (
-    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all">
+const AlertItem = ({ region, threat, severity, reason, time, lat, lon, onClick }) => (
+    <div
+        onClick={onClick}
+        className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between group hover:bg-white hover:shadow-md transition-all cursor-pointer"
+    >
         <div className="flex items-center gap-5">
             <div className={`p-3 rounded-xl ${severity === 'Critical' ? 'bg-accent-rose/10 text-accent-rose' : 'bg-accent-amber/10 text-accent-amber'}`}>
-                <AlertTriangle size={20} />
+                {threat.includes('Flood') ? <Waves size={20} /> : <AlertTriangle size={20} />}
             </div>
             <div>
                 <div className="flex items-center gap-2 mb-1">
                     <span className="font-bold text-sm text-slate-800">{region}</span>
                     <span className="text-[10px] font-bold text-slate-400">{lat.toFixed(2)}, {lon.toFixed(2)}</span>
                 </div>
-                <div className="text-xs font-medium text-slate-500">{threat}</div>
+                <div className="flex flex-col gap-0.5">
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-tight">{threat}</div>
+                    {reason && <div className="text-[10px] font-black text-accent-rose uppercase tracking-widest flex items-center gap-1 mt-1">
+                        <span className="w-1 h-1 rounded-full bg-accent-rose animate-pulse" />
+                        Reason: {reason}
+                    </div>}
+                </div>
             </div>
         </div>
         <div className="text-right">

@@ -16,8 +16,9 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WILDFIRE_PATH  = os.path.join(PROJECT_ROOT, "modules", "wildfire")
 FLOODCAST_PATH = os.path.join(PROJECT_ROOT, "modules", "floodcast")
 FORESTGUARD_PATH = os.path.join(PROJECT_ROOT, "modules", "forestguard")
+CITYISSUES_PATH = os.path.join(PROJECT_ROOT, "modules", "cityissues")
 ALERTS_PATH = os.path.join(PROJECT_ROOT, "alerts")
-for p in [WILDFIRE_PATH, FLOODCAST_PATH, FORESTGUARD_PATH, ALERTS_PATH]:
+for p in [WILDFIRE_PATH, FLOODCAST_PATH, FORESTGUARD_PATH, CITYISSUES_PATH, ALERTS_PATH]:
     if p not in sys.path:
         sys.path.insert(0, p)
 
@@ -60,6 +61,13 @@ try:
 except Exception as e:
     print(f"[WARN] ForestGuard import failed: {e}")
     FORESTGUARD_AVAILABLE = False
+
+try:
+    from issue_analyzer import get_city_issues, analyze_issue_image
+    CITYISSUES_AVAILABLE = True
+except Exception as e:
+    print(f"[WARN] CityIssues import failed: {e}")
+    CITYISSUES_AVAILABLE = False
 
 try:
     from telegram_bot import send_test_alert, DEMO_MODE as TELEGRAM_DEMO
@@ -140,6 +148,7 @@ def api_status():
             "wildfire_scan": WILDFIRE_AVAILABLE,
             "flood_cast": FLOODCAST_AVAILABLE,
             "forest_guard": FORESTGUARD_AVAILABLE,
+            "city_issues": CITYISSUES_AVAILABLE,
             "telegram_bot": {
                 "available": TELEGRAM_AVAILABLE,
                 "demo_mode": TELEGRAM_DEMO
@@ -157,8 +166,8 @@ def api_wildfire():
         lat  (float): Centre latitude  (used for metadata only)
         lon  (float): Centre longitude (used for metadata only)
     """
-    lat = float(request.args.get("lat", 37.7749))
-    lon = float(request.args.get("lon", -122.4194))
+    lat = float(request.args.get("lat", 22.9734))
+    lon = float(request.args.get("lon", 78.6569))
 
     if not WILDFIRE_AVAILABLE:
         return jsonify({"error": "WildfireScan module unavailable"}), 503
@@ -186,8 +195,8 @@ def api_floodcast():
         lat  (float): Latitude
         lon  (float): Longitude
     """
-    lat = float(request.args.get("lat", 25.2048))
-    lon = float(request.args.get("lon", 55.2708))
+    lat = float(request.args.get("lat", 13.0827))
+    lon = float(request.args.get("lon", 80.2707))
 
     if not FLOODCAST_AVAILABLE:
         return jsonify({"error": "FloodCast module unavailable"}), 503
@@ -220,8 +229,8 @@ def api_forestguard():
         biome  (str):   One of tropical_rainforest, temperate_mixed_forest,
                         boreal_forest, dry_tropical_forest
     """
-    lat = float(request.args.get("lat", -3.4653))
-    lon = float(request.args.get("lon", -62.2159))
+    lat = float(request.args.get("lat", 20.2961))
+    lon = float(request.args.get("lon", 85.8245))
     biome = request.args.get("biome", "tropical_rainforest")
 
     if not FORESTGUARD_AVAILABLE:
@@ -265,6 +274,41 @@ def api_forestguard():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/api/city_issues")
+def api_city_issues():
+    """Returns a list of reported city infrastructure issues."""
+    if not CITYISSUES_AVAILABLE:
+        return jsonify({"error": "City Issues module unavailable"}), 503
+    
+    try:
+        issues = get_city_issues()
+        return jsonify({
+            "count": len(issues),
+            "issues": issues,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/city_issues/analyze", methods=["POST"])
+def api_city_analyze():
+    """Simulates AI analysis of an uploaded image for infrastructure issues."""
+    if not CITYISSUES_AVAILABLE:
+        return jsonify({"error": "City Issues module unavailable"}), 503
+    
+    try:
+        # In demo mode, we just return a random analysis
+        result = analyze_issue_image()
+        return jsonify({
+            "status": "success",
+            "analysis": result,
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/api/telegram/test", methods=["POST"])
 def api_telegram_test():
     """Trigger a manual test alert via the Telegram bot."""
@@ -286,17 +330,18 @@ def api_telegram_test():
 def api_all_threats():
     """Aggregate summary of all three modules for the dashboard map."""
     hotspots = [
-        (37.7749, -122.4194, "San Francisco Bay"),
-        (34.0522, -118.2437, "Los Angeles"),
-        (-3.4653, -62.2159, "Amazon Basin"),
-        (1.3521, 103.8198, "Singapore / Borneo"),
-        (30.0444, 31.2357, "Nile Delta"),
-        (25.2048, 55.2708, "Dubai / Gulf"),
-        (51.5074, -0.1278, "London / Thames"),
-        (22.3964, 114.1095, "Hong Kong / Pearl River"),
-        (11.0168, 76.9558, "Coimbatore, Tamil Nadu"),
-        (13.0827, 80.2707, "Chennai, Tamil Nadu"),
+        (13.0827, 80.2707, "Chennai (Flood Watch)"),
+        (11.0168, 76.9558, "Coimbatore, TN"),
+        (9.9252, 78.1198, "Madurai, TN"),
+        (10.7905, 78.7047, "Trichy, TN"),
+        (11.6643, 78.1460, "Salem, TN"),
+        (12.9165, 79.1325, "Vellore, TN"),
         (28.6139, 77.2090, "Delhi NCR"),
+        (19.0760, 72.8777, "Mumbai, Maharashtra"),
+        (12.9716, 77.5946, "Bangalore, Karnataka"),
+        (15.2993, 74.1240, "Goa Region"),
+        (9.9312, 76.2673, "Kochi, Kerala"),
+        (26.1158, 91.7086, "Guwahati, Assam"),
     ]
 
     features = []
@@ -304,7 +349,8 @@ def api_all_threats():
 
     for lat, lon, region in hotspots:
         fire_risk = round(float(rng.uniform(20, 95)), 1)
-        flood_prob = round(float(rng.uniform(0.1, 0.9)), 3)
+        # Higher flood probability for Chennai
+        flood_prob = round(float(rng.uniform(0.6, 0.95)) if "Chennai" in region else rng.uniform(0.1, 0.9), 3)
         deforest_pct = round(float(rng.uniform(0.5, 20)), 1)
         co2e = round(deforest_pct * 12.4, 1)
 

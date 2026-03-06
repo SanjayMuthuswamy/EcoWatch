@@ -5,6 +5,7 @@ import {
     Terminal as TerminalIcon,
     Zap,
     ShieldCheck,
+    CheckCircle2,
     AlertCircle,
     Globe,
     MapPin,
@@ -18,6 +19,8 @@ const AnalyticsHub = ({ data, selectedHotspot, isFullScreen = false }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isThinking, setIsThinking] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const [exported, setExported] = useState(false);
 
     useEffect(() => {
         // Initial intelligence briefing
@@ -47,6 +50,15 @@ const AnalyticsHub = ({ data, selectedHotspot, isFullScreen = false }) => {
             setMessages(prev => [...prev, aiMsg]);
             setIsThinking(false);
         }, 1500);
+    };
+
+    const handleExport = () => {
+        setExporting(true);
+        setTimeout(() => {
+            setExporting(false);
+            setExported(true);
+            setTimeout(() => setExported(false), 3000);
+        }, 2000);
     };
 
     if (!data) return null;
@@ -97,10 +109,10 @@ const AnalyticsHub = ({ data, selectedHotspot, isFullScreen = false }) => {
                                     className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                                 >
                                     <div className={`max-w-[80%] p-4 rounded-2xl text-sm font-medium leading-relaxed ${msg.role === 'user'
-                                            ? 'bg-accent-indigo text-white rounded-br-none'
-                                            : msg.role === 'system'
-                                                ? 'bg-slate-800/50 text-slate-400 italic border border-slate-700'
-                                                : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                        ? 'bg-accent-indigo text-white rounded-br-none'
+                                        : msg.role === 'system'
+                                            ? 'bg-slate-800/50 text-slate-400 italic border border-slate-700'
+                                            : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
                                         }`}>
                                         {msg.content}
                                     </div>
@@ -176,9 +188,17 @@ const AnalyticsHub = ({ data, selectedHotspot, isFullScreen = false }) => {
                                     <DirectiveItem icon={<MapPin className="text-accent-sky" />} text={`Sector ${selectedHotspot.lat.toFixed(1)} N/S identified as critical.`} />
                                 </div>
 
-                                <button className="w-full mt-8 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                                    <ArrowUpRight size={14} />
-                                    Export Full Intel Report
+                                <button
+                                    onClick={handleExport}
+                                    disabled={exporting || exported}
+                                    className={`w-full mt-8 py-4 border rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${exported ? 'bg-accent-emerald/10 border-accent-emerald text-accent-emerald' :
+                                            exporting ? 'bg-slate-50 border-slate-200 text-slate-400' :
+                                                'bg-slate-50 border-slate-200 text-slate-400 hover:bg-slate-100'
+                                        }`}
+                                >
+                                    {exported ? 'Report Exported (PDF)' : exporting ? 'Generating Report...' : 'Export Full Intel Report'}
+                                    {!exporting && !exported && <ArrowUpRight size={14} />}
+                                    {exported && <CheckCircle2 size={14} className="text-accent-emerald" />}
                                 </button>
                             </div>
                         </>

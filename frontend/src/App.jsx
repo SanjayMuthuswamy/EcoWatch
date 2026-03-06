@@ -5,13 +5,16 @@ import Sidebar from './components/Sidebar';
 import MapDisplay from './components/MapDisplay';
 import AnalyticsHub from './components/AnalyticsHub';
 import MonitoringHub from './components/MonitoringHub';
+import CityIssuesMonitor from './components/CityIssuesMonitor';
+import ImpactSimulator from './components/ImpactSimulator';
 import { AnimatePresence, motion } from 'framer-motion';
 
 function App() {
     const { data, loading, sendTelegramTest } = useEcoData();
     const [activeTab, setActiveTab] = useState('all');
-    const [currentView, setCurrentView] = useState('map'); // 'map', 'analytics', or 'alerts'
+    const [currentView, setCurrentView] = useState('impact'); // 'impact', 'map', 'analytics', 'city-issues', or 'alerts'
     const [selectedHotspot, setSelectedHotspot] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
     return (
         <div className="h-screen w-screen bg-background flex flex-col overflow-hidden font-sans">
@@ -31,7 +34,12 @@ function App() {
             </AnimatePresence>
 
             {/* Application Header / Navbar */}
-            <Header currentView={currentView} setCurrentView={setCurrentView} />
+            <Header
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+            />
 
             <div className="flex-1 flex overflow-hidden relative">
                 {/* Collapsible Sidebar */}
@@ -39,9 +47,11 @@ function App() {
                     data={data}
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
                     setSelectedHotspot={(hs) => {
                         setSelectedHotspot(hs);
-                        setCurrentView('analytics');
+                        setCurrentView('impact');
                     }}
                 />
 
@@ -61,7 +71,7 @@ function App() {
                                     activeTab={activeTab}
                                     onSelectHotspot={(hs) => {
                                         setSelectedHotspot(hs);
-                                        setCurrentView('analytics');
+                                        setCurrentView('impact');
                                     }}
                                 />
                             </motion.div>
@@ -79,7 +89,17 @@ function App() {
                                     isFullScreen={true}
                                 />
                             </motion.div>
-                        ) : (
+                        ) : currentView === 'city-issues' ? (
+                            <motion.div
+                                key="city-issues-view"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+                            >
+                                <CityIssuesMonitor />
+                            </motion.div>
+                        ) : currentView === 'alerts' ? (
                             <motion.div
                                 key="monitoring-view"
                                 initial={{ opacity: 0, y: 10 }}
@@ -87,9 +107,29 @@ function App() {
                                 exit={{ opacity: 0, y: -10 }}
                                 className="flex-1 p-8 overflow-y-auto custom-scrollbar"
                             >
-                                <MonitoringHub data={data} sendTelegramTest={sendTelegramTest} />
+                                <MonitoringHub
+                                    data={data}
+                                    sendTelegramTest={sendTelegramTest}
+                                    onSelectHotspot={(hs) => {
+                                        setSelectedHotspot(hs);
+                                        setCurrentView('impact');
+                                    }}
+                                />
                             </motion.div>
-                        )}
+                        ) : currentView === 'impact' ? (
+                            <motion.div
+                                key="impact-view"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex-1 p-8 overflow-y-auto custom-scrollbar"
+                            >
+                                <ImpactSimulator
+                                    data={data}
+                                    selectedHotspot={selectedHotspot}
+                                />
+                            </motion.div>
+                        ) : null}
                     </AnimatePresence>
                 </main>
             </div>

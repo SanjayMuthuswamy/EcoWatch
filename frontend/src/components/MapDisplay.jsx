@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, AlertTriangle, Droplets, TreeDeciduous, Info } from 'lucide-react';
@@ -15,13 +15,13 @@ let DefaultIcon = L.icon({
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
-const MapDisplay = ({ data, activeTab }) => {
+const MapDisplay = ({ data, activeTab, onSelectHotspot }) => {
     if (!data) return null;
 
     return (
         <MapContainer
-            center={[20, 0]}
-            zoom={3}
+            center={[22.9734, 78.6569]}
+            zoom={5}
             zoomControl={false}
             className="h-full w-full"
         >
@@ -31,8 +31,33 @@ const MapDisplay = ({ data, activeTab }) => {
             />
 
             {data.hotspots.map((hs, idx) => (
-                <ThreatMarker key={idx} hs={hs} activeTab={activeTab} />
+                <ThreatMarker
+                    key={idx}
+                    hs={hs}
+                    activeTab={activeTab}
+                    onSelectHotspot={() => onSelectHotspot(hs)}
+                />
             ))}
+
+            {/* Impact Zone Overlay Rings */}
+            {data.hotspots.map((hs, idx) => {
+                const maxRisk = Math.max(hs.wildfire.fire_risk_pct, hs.flood.probability * 100);
+                const zoneColor = maxRisk > 70 ? '#f43f5e' : maxRisk > 40 ? '#f97316' : '#eab308';
+                const radius = Math.max(8, maxRisk / 3);
+                return (
+                    <CircleMarker
+                        key={`zone-${idx}`}
+                        center={[hs.lat, hs.lon]}
+                        radius={radius}
+                        pathOptions={{
+                            color: zoneColor,
+                            weight: 1.5,
+                            fillColor: zoneColor,
+                            fillOpacity: 0.12,
+                        }}
+                    />
+                );
+            })}
 
             <MapController />
         </MapContainer>
@@ -44,7 +69,7 @@ const MapController = () => {
     return null;
 };
 
-const ThreatMarker = ({ hs, activeTab }) => {
+const ThreatMarker = ({ hs, activeTab, onSelectHotspot }) => {
     let color = '#94a3b8'; // slate-400
     let shadowColor = 'rgba(148, 163, 184, 0.4)';
 
@@ -106,7 +131,10 @@ const ThreatMarker = ({ hs, activeTab }) => {
                         </div>
                     </div>
 
-                    <button className="w-full py-2.5 bg-slate-50 text-[10px] font-bold text-accent-indigo uppercase tracking-widest border-t border-slate-100 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2">
+                    <button
+                        onClick={onSelectHotspot}
+                        className="w-full py-2.5 bg-slate-50 text-[10px] font-bold text-accent-indigo uppercase tracking-widest border-t border-slate-100 hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
+                    >
                         <Info size={12} />
                         View Full Report
                     </button>

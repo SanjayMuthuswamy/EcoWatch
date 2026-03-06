@@ -93,7 +93,7 @@ def plot_flood_forecast(hourly_probs: list, weather_data: dict,
                      xytext=(10, -20), textcoords="offset points",
                      color="#ff6644", fontsize=9, fontweight="bold")
 
-    ax1.set_title("EcoWatch AI — FloodCast 72-Hour Forecast | Chennai, Tamil Nadu",
+    ax1.set_title("EcoWatch AI — FloodCast 72-Hour Forecast | India Focus",
                   color="#e6edf3", fontsize=13, fontweight="bold", pad=12)
     ax1.set_ylabel("Flood Probability (%)", color="#c9d1d9", fontsize=10)
     ax1.set_ylim(0, 105)

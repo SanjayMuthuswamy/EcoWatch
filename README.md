@@ -1,6 +1,6 @@
-# 🌿 EcoWatch AI — Environmental Threat Detection Platform
+# 🌿 EcoWatch AI — India Environmental Threat Detection Platform
 
-> An open-source, AI-powered PoC for real-time wildfire risk scoring, flood forecasting, and deforestation monitoring — built with lightweight ML models, free data sources, and a beautiful Leaflet.js dashboard.
+> An open-source, AI-powered PoC for real-time wildfire risk scoring, flood forecasting, and deforestation monitoring in India — built with lightweight ML models, free data sources, and a beautiful Leaflet.js dashboard.
 
 ---
 
@@ -17,13 +17,23 @@ EcoWatch/
 │   │   ├── weather_fetcher.py      # Open-Meteo API + synthetic fallback
 │   │   ├── lstm_model.py           # LSTM flood prediction (PyTorch)
 │   │   └── flood_mapper.py         # 48 h / 72 h probability map + chart
-│   └── forestguard/
-│       ├── change_detector.py      # CNN NDVI change detection (2022→2024)
-│       └── carbon_estimator.py     # Deforestation → CO₂ tonnes (IPCC)
+│   ├── forestguard/
+│   │   ├── change_detector.py      # CNN NDVI change detection (2022→2024)
+│   │   └── carbon_estimator.py     # Deforestation → CO₂ tonnes (IPCC)
+│   └── cityissues/
+│       ├── issue_analyzer.py      # AI infrastructure problem classifier
+│       └── sample_data/            # Synthetic issue images
 ├── dashboard/
 │   ├── app.py                      # Flask backend (REST API)
 │   └── templates/
-│       └── index.html              # Leaflet.js dark-theme dashboard
+│       └── index.html              # Leaflet.js dashboard entry
+├── frontend/                       # Modern React + Vite frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── CityIssuesMonitor.jsx # Expandable "Open/Close" UI
+│   │   │   └── MonitoringHub.jsx     # Regional alert feed
+│   │   └── App.jsx
+│   └── vite.config.js
 ├── alerts/
 │   └── telegram_bot.py             # Telegram alert bot
 ├── requirements.txt
@@ -117,14 +127,31 @@ python telegram_bot.py --once
 
 ---
 
+## 🏙️ Module 4 — City Issues Monitor (Regional Intelligence)
+
+| File | Description |
+|------|-------------|
+| `issue_analyzer.py` | Classifies regional infrastructure issues (drainage, roads, fires, floods) |
+| `CityIssuesMonitor.jsx` | Expandable **"Open/Close" Accordion UI** for civic problem management |
+
+**Regional Focus**: Primary intelligence for **Tamil Nadu, India** (Chennai, Coimbatore, Madurai, Salem, etc.).
+- **Flood Focus**: Dedicated monitoring for **Chennai** (Velachery, OMR, Tambaram sectors).
+- **Critical Reasons**: Issues are tagged with specific context (e.g., "Critical: Flooding Risk" or "Critical: Fire Hazard").
+
+---
+
 ## 🗺️ Dashboard Features
 
-- **Dark-theme Leaflet.js map** with OpenStreetMap tiles
-- **Live hotspot markers** colour-coded by dominant threat (fire / flood / deforestation)
-- **Sidebar**: Module tabs, global summary stats, 24-hour flood probability chart, clickable hotspot list
-- **HUD cards**: Real-time max fire risk, flood probability, CO₂e released
-- **Popup tooltips**: Per-region breakdown of all three threat scores
-- **Auto-refresh** every 60 seconds
+- **Premium React Frontend**: Built with Vite, Tailwind CSS, and Framer Motion for smooth transitions
+- **Interactive Leaflet.js Map**: Real-time regional intelligence with custom marker clusters
+- **"Open/Close" Accordion UI**: Modern issue management with expandable cards and verified imagery
+- **Threat Intelligence Accordion**: Expandable Active Zone cards with historical trends, AI risk assessments, and recommended actions
+- **AI Disaster Impact Simulator**: Predict 24–72h disaster impact zones, infrastructure exposure estimates, and AI-powered response suggestions
+- **Impact Zone Map Overlays**: Color-coded risk rings on the Live Map (Red=High, Orange=Medium, Yellow=Low)
+- **City Threat Score (0–100)**: Weighted composite score combining wildfire, flood, and deforestation risk
+- **Regional Alert Feed**: Real-time ticker for critical events (e.g., Chennai monsoon flooding)
+- **AI Inspector**: Walkthrough feature simulating real-time image analysis for civic issues
+- **Live HUD Cards**: Real-time stats for total problems, critical threats, and resolution progress
 
 ---
 

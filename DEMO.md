@@ -162,7 +162,7 @@ cd alerts && python telegram_bot.py --once
 [DEMO] Would send Telegram message:
 🔥 *WILDFIRE ALERT — HIGH*
 ━━━━━━━━━━━━━━━━━━━━
-📍 *Region:* San Francisco Bay
+📍 *Region:* Delhi NCR
 📊 *Fire Risk:* `82.3%`
 ...
 ```
